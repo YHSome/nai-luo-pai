@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    奶罗牌
    极简界面 + 保留洗牌 / 抽牌 / 翻牌的仪式感
    ========================================================= */
@@ -634,6 +634,43 @@ main {
   line-height: 1.8;
   color: var(--text-dim);
   opacity: .75;
+}
+
+/* 进入时的卡面缩略图预加载 */
+.prep {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 0 4px;
+}
+
+.prep-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.prep-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: var(--primary);
+  transition: width .18s linear;
+}
+
+.prep-num {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn[disabled] {
+  opacity: .55;
+  pointer-events: none;
 }
 
 /* ---------------- 水波纹 ---------------- */

@@ -182,6 +182,36 @@
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
   }
 
+  /* ---------- 卡面缩略图 ---------- */
+  // 78 张卡面都预先生成 320px 宽的 WebP 缩略图，进入时先整批加载，
+  // 之后翻牌、解读页、分享图都用缩略图，不再有任何卡图请求。
+  const CARD_THUMB = name => `assets/cards_nai/thumbs/${name}.webp`;
+
+  function preloadCardArt(onProgress) {
+    const names = [...new Set(DECK.map(c => c.name))];
+    const total = names.length;
+    let done = 0;
+    let idx = 0;
+
+    return new Promise(resolve => {
+      const finishOne = () => {
+        done++;
+        onProgress(done, total);
+        if (done === total) resolve();
+        else next();
+      };
+      const next = () => {
+        if (idx >= total) return;
+        const img = new Image();
+        img.onload = finishOne;
+        img.onerror = finishOne;
+        img.src = CARD_THUMB(names[idx++]);
+      };
+      // 并发 6 条，够快又不至于把弱网挤爆
+      for (let i = 0; i < 6; i++) next();
+    });
+  }
+
   function cardEl(card, opts = {}) {
     const { reversed = false, flipped = false, small = false } = opts;
     const num = card.arcana === 'major'
@@ -197,7 +227,7 @@
           <span class="back-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M16 3.6c4.3 6.4 7.6 11 7.6 14.6a7.6 7.6 0 1 1-15.2 0C8.4 14.6 11.7 10 16 3.6Z"/></svg></span>
         </div>
         <div class="tcard-face tcard-front${reversed ? ' rev' : ''}" style="--c:${SUITS[card.suit].color}">
-          <img class="face-img" src="assets/cards_nai/${card.name}.webp" alt=""
+          <img class="face-img" src="${CARD_THUMB(card.name)}" alt=""
                draggable="false"
                onload="this.parentNode.classList.add('has-face')"
                onerror="this.remove()">
@@ -732,7 +762,7 @@
       <div class="sp-cards n${r.cards.length}">
         ${r.cards.map(c => `
           <figure class="sp-card">
-            <img src="assets/cards_nai/${c.card.name}.webp" alt="${c.card.name}"
+            <img src="${CARD_THUMB(c.card.name)}" alt="${c.card.name}"
                  class="${c.reversed ? 'rev' : ''}" draggable="false">
             <figcaption>${escapeHtml(c.pos)}${c.reversed ? ' · 逆位' : ''}</figcaption>
           </figure>`).join('')}
@@ -874,9 +904,32 @@
   }
 
   /* ---------- 启动 ---------- */
+  async function boot() {
+    const btn = $('#btnStart');
+    const bar = $('#prepBar');
+    const fill = $('#prepFill');
+    const text = $('#prepText');
+
+    btn.disabled = true;
+    btn.textContent = '正在准备牌面…';
+    if (bar) bar.hidden = false;
+
+    await preloadCardArt((done, total) => {
+      btn.textContent = `正在准备牌面 ${done} / ${total}`;
+      if (text) text.textContent = `${done} / ${total}`;
+      if (fill) fill.style.width = (done / total * 100).toFixed(1) + '%';
+    });
+
+    if (bar) bar.hidden = true;
+    btn.disabled = false;
+    syncSpreads();
+    document.body.classList.add('ready');
+  }
+
   initStars();
   bind();
   goPhase('ask');
+  boot();
 
   window.__tarot = { state, demo, buildReading, cardEl };
 
