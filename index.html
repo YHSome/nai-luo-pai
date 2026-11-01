@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16120E">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="奶罗牌 · 塔罗占卜：提问、洗牌、抽牌、翻牌、解读。纯前端，打开即用。">
+<title>奶罗牌 · 塔罗占卜</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2316120E'/%3E%3Cpath d='M16 4c4.3 6.4 7.4 10.8 7.4 14.3a7.4 7.4 0 1 1-14.8 0C8.6 14.8 11.7 10.4 16 4Z' fill='%23F0CF7E'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="stars" aria-hidden="true"></canvas>
+
+<header class="appbar">
+  <div class="appbar-inner">
+    <span class="appbar-logo" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M16 4c4.3 6.4 7.4 10.8 7.4 14.3a7.4 7.4 0 1 1-14.8 0C8.6 14.8 11.7 10.4 16 4Z"/></svg></span>
+    <h1>奶罗牌</h1>
+    <span class="appbar-step" id="stepLabel">提问</span>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- 1. 提问 -->
+  <section class="phase active" id="phase-ask">
+    <h2 class="headline">想问点什么？</h2>
+    <p class="support">说成一个问题，越具体，牌面越清楚。</p>
+
+    <div class="field">
+      <textarea id="question" rows="2" maxlength="80"
+        placeholder="例如：我和 TA 的关系，接下来会怎么发展？"
+        aria-label="你的问题"></textarea>
+    </div>
+
+    <div class="chips">
+      <button class="chip" data-q="我和 TA 的关系，接下来会怎么发展？">感情</button>
+      <button class="chip" data-q="现在这份工作，我应该继续还是离开？">事业</button>
+      <button class="chip" data-q="最近在钱上需要注意什么？">财运</button>
+      <button class="chip" data-q="我现在最需要面对的课题是什么？">自我</button>
+    </div>
+
+    <h3 class="section-title">牌阵</h3>
+    <div class="segmented" id="spreads" role="tablist" aria-label="选择牌阵"></div>
+    <p class="spread-hint" id="spreadHint"></p>
+
+    <button class="btn filled" id="btnStart">开始占卜</button>
+    <p class="footnote">牌义仅供自我觉察与娱乐 · 不会上传任何数据<br>卡面插画：奶蛙塔罗 · @阿绿</p>
+  </section>
+
+  <!-- 2. 洗牌（点牌堆，不额外放按钮） -->
+  <section class="phase phase-center" id="phase-shuffle">
+    <p class="overline">洗牌</p>
+    <h2 class="headline">把问题放在心上</h2>
+    <p class="support">轻点牌堆，洗三次。</p>
+
+    <button class="deck" id="deckBtn" aria-label="轻点牌堆洗牌">
+      <span class="deck-glow" aria-hidden="true"></span>
+      <span class="deck-stack" aria-hidden="true">
+        <span class="deck-card"></span>
+        <span class="deck-card"></span>
+        <span class="deck-card"></span>
+        <span class="deck-card"></span>
+        <span class="deck-card"></span>
+        <span class="deck-card"></span>
+      </span>
+    </button>
+
+    <p class="hint" id="shuffleHint">轻点牌堆开始</p>
+  </section>
+
+  <!-- 3. 抽牌 -->
+  <section class="phase phase-center" id="phase-pick">
+    <div class="pick-bar">
+      <p class="overline">抽牌</p>
+      <span class="counter" id="pickCount">0 / 3</span>
+    </div>
+    <h2 class="headline" id="pickTitle">选 3 张</h2>
+    <p class="support" id="pickHint">凭直觉点，翻开就算选中。</p>
+
+    <div class="fan" id="fan"></div>
+    <p class="hint" id="pickStatus"></p>
+  </section>
+
+  <!-- 4. 翻牌 -->
+  <section class="phase phase-center" id="phase-reveal">
+    <p class="overline">翻牌</p>
+    <h2 class="headline">翻开你的牌</h2>
+    <p class="support" id="revealHint">逐张点击牌面翻开。</p>
+
+    <div class="slots" id="slots"></div>
+  </section>
+
+  <!-- 5. 解读 -->
+  <section class="phase" id="phase-result">
+    <p class="overline">解读</p>
+    <h2 class="headline question" id="resultQuestion"></h2>
+    <p class="support" id="resultMeta"></p>
+
+    <div class="panel" id="summary"></div>
+
+    <div class="tiles" id="tiles"></div>
+    <p class="hint tiles-hint" id="tilesHint">点开任意一张牌，看它的解读</p>
+
+    <button class="btn share" id="btnShare" type="button">📷 分享牌面</button>
+    <button class="btn filled" id="btnAgain">再抽一次</button>
+    <button class="btn sponsor" id="sponsorBtn" type="button">🌶️ 可以请作者吃包辣条吗</button>
+    <button class="btn text" id="btnBack">换个问题</button>
+  </section>
+
+</main>
+
+<!-- 分享图（截图用） -->
+<div class="share-layer" id="shareLayer" role="dialog" aria-modal="true" aria-label="分享牌面" hidden>
+  <button class="share-close" id="shareClose" type="button" aria-label="关闭">✕</button>
+  <div class="share-poster" id="sharePoster"></div>
+  <p class="share-tip">截图这张卡片，分享给朋友 · 点空白处关闭</p>
+</div>
+
+<!-- 赞助作者 -->
+<div class="sponsor-modal" id="sponsorModal" role="dialog" aria-modal="true" aria-label="请作者吃包辣条" hidden>
+  <div class="sponsor-card">
+    <div class="sponsor-head">
+      <h2>🌶️ 请作者吃包辣条</h2>
+      <button class="sponsor-close" id="sponsorClose" type="button" aria-label="关闭">✕</button>
+    </div>
+    <p class="sponsor-note">这游戏完全免费，也没有任何广告。<br>要是它让你会心一笑，赏作者一包辣条呗 🌶️</p>
+    <img class="sponsor-qr" src="assets/sponsor-qr.jpg" width="480" height="480"
+         alt="微信收款码" loading="lazy" decoding="async">
+    <p class="sponsor-hint">微信扫一扫 · 一包辣条 · 全凭心意</p>
+    <button class="btn text" id="sponsorOk" type="button">关闭</button>
+  </div>
+</div>
+
+<!-- 单张牌义弹层 -->
+<div class="scrim" id="scrim" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="这张牌的解读" hidden>
+  <div class="sheet-grip" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <div class="sheet-thumb" id="sheetCard"></div>
+    <div class="sheet-head-text">
+      <p class="sheet-pos" id="sheetPos"></p>
+      <h3 class="sheet-name" id="sheetName"></h3>
+    </div>
+  </div>
+  <p class="sheet-text" id="sheetText"></p>
+  <div class="kws" id="sheetKw"></div>
+  <button class="btn tonal" id="sheetClose">继续</button>
+</section>
+
+<!-- 单张牌义气泡 -->
+<div class="bubble" id="bubble" role="dialog" aria-label="这张牌的解读" hidden>
+  <p class="bubble-pos" id="bubblePos"></p>
+  <p class="bubble-name" id="bubbleName"></p>
+  <p class="bubble-text" id="bubbleText"></p>
+  <div class="kws" id="bubbleKw"></div>
+  <span class="bubble-arrow" aria-hidden="true"></span>
+</div>
+
+<script src="js/cards.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
